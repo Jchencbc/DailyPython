@@ -73,7 +73,7 @@ def get_weibo_lisdt(v_keyword, v_max_page):
 
 
 if __name__ == '__main__':
-    keyword = ['']  # 指定爬取微博
+    keyword = ['']  # 指定爬取微博名称
     max_page = 60  # 爬取最大页数
     # comment_file = '微博评论.csv'
     # # 如果结果文件存在，先删除
