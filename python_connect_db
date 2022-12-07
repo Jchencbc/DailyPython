@@ -1,0 +1,38 @@
+# python连接mysql
+
+import pymysql
+
+conn = pymysql.connect(host=ip,
+                       user="root",
+                       password=password,
+                       database=db_name,
+                       port=port,
+                       charset='utf8mb4')
+cur = conn.cursor()  # 生成游标对象
+sql = sql  # SQL语句
+cur.execute(sql)  # 执行SQL语句
+data = cur.fetchall()  # 通过fetchall方法获得数据
+cur.close()  # 关闭游标
+conn.close()  # 关闭连接
+
+#python连接mongodb
+
+import pandas as pd
+import pymongo
+from urllib import parse
+
+# 转义用户名和密码
+user = parse.quote_plus("root")
+passwd = parse.quote_plus("password")
+# 连接MongoDB
+client = pymongo.MongoClient("mongodb://{0}:{1}@ip:port".format(user, passwd))
+db = client['db_name']
+table = db['table_name']  
+# 表转dataframe
+data = pd.DataFrame(list(table.find()))python
+
+
+#python连接neo4j
+from py2neo import Graph, NodeMatcher, Node
+
+graph = Graph("http://localhost:7474/browser/", auth=("neo4j", "password"))  # 后续参见另一篇neo4j——python
