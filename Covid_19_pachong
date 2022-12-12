@@ -1,0 +1,81 @@
+import os
+import json
+import requests
+import pandas as pd
+import datetime
+
+
+def Get_ProvinceInfo(Key):
+    '''
+        获取省份信息：名称、编码、拼音、经纬度
+    '''
+    url = "https://apis.map.qq.com/ws/district/v1/list"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36',
+    }
+    params = {
+        "key": key
+    }
+    res = requests.get(url, params=params, headers=headers)
+    res.encoding = "utf-8"
+    js_data = json.loads(res.text)
+    # 进一步处理
+    province_df = pd.DataFrame(js_data['result'][0])
+    province_df['pinyin'] = ["".join([j.capitalize() for j in i]) for i in province_df['pinyin']]
+    province_df['lat'] = [i['lat'] for i in province_df['location']]
+    province_df['lng'] = [i['lng'] for i in province_df['location']]
+    province_df.drop(['location', 'cidx'], axis=1, inplace=True)
+
+    return province_df
+
+
+def Get_COVID19_History(df):
+    '''
+        获取新冠疫情历史数据
+    '''
+    res = pd.DataFrame()
+    for code in df['id']:
+        if code != '':
+            history_data = \
+            requests.get('https://api.inews.qq.com/newsqa/v1/query/pubished/daily/list?adCode=' + str(code)).json()[
+                'data']
+            history_df = pd.DataFrame(history_data)
+            history_df['date'] = pd.to_datetime(history_df['year'].astype('str') + '.' + history_df['date'])
+            history_df_use = history_df[
+                ['date', 'province', 'confirm', 'dead', 'heal', 'wzz', 'newConfirm', 'all_local_confirm_add', \
+                 'newHeal', 'newDead', 'wzz_add']]
+            history_df_use.columns = ['日期', '省份', '累计确诊', '累计死亡', '累计治愈', '无症状', '新增确诊', '新增本土', \
+                                      '新增治愈', '新增死亡', '新增无症状']
+            history_df_use.insert(2, "省份编码", code)
+            res = pd.concat([res, history_df_use])
+
+    return res
+
+
+def CreateFolder(path):
+    '''
+        创建文件夹函数
+    '''
+    # os.path.exists 函数判断文件夹是否存在
+    folder = os.path.exists(path)
+
+    # 判断是否存在文件夹如果不存在则创建为文件夹
+    if not folder:
+        # os.makedirs 传入一个path路径，生成一个递归的文件夹；如果文件夹存在，就会报错,因此创建文件夹之前，需要使用os.path.exists(path)函数判断文件夹是否存在；
+        os.makedirs(path)  # makedirs 创建文件时如果路径不存在会创建这个路径
+        print('文件夹创建成功：', path)
+
+    else:
+        print('文件夹已经存在：', path)
+
+
+if __name__ == "__main__":
+    key = 'key'  # 获取参考：http://t.zoukankan.com/1549983239yifeng-p-14750266.html
+    province = Get_ProvinceInfo(key)
+    covid19_province = Get_COVID19_History(province)
+
+    now_day = datetime.datetime.now().strftime("%Y-%m-%d")
+    CreateFolder(os.getcwd() + "/" + now_day)  # 创建文件夹
+    covid19_province.to_csv("{}/COVID19_History_province_{}.csv".format(os.getcwd() + "/" + now_day, now_day),
+                            index=False)
+    print("程序运行完成")
